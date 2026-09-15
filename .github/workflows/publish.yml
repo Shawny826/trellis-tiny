@@ -1,0 +1,56 @@
+# Push-to-main CI: build + test always; publish to npm only when the version
+# in tiny/package.json differs from what the registry already has.
+# Publish needs the NPM_TOKEN secret (Actions → Variables and secrets →
+# Actions → Repository secrets). Until it is set, this job stays green and
+# skips the publish step.
+name: build-and-publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm provenance
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Build & test
+        working-directory: tiny
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm lint
+          pnpm typecheck
+          pnpm build
+          pnpm test
+
+      - name: Publish when version changed
+        working-directory: tiny
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::notice::NPM_TOKEN secret not set — skipping publish"
+            exit 0
+          fi
+          LOCAL="$(node -p "require('./package.json').version")"
+          if REMOTE="$(npm view trellis-tiny version 2>/dev/null)" && [ "$LOCAL" = "$REMOTE" ]; then
+            echo "trellis-tiny@$LOCAL already published — skipping"
+            exit 0
+          fi
+          npm publish --provenance
