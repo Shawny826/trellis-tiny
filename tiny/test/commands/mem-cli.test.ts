@@ -1,0 +1,155 @@
+/**
+ * Unit tests for the `tt mem` CLI-layer helpers (M6 port of the upstream
+ * mem-helpers suite). The retrieval / search / cleaning primitives live in
+ * `lib/mem` and are covered by test/mem/*; what is tested here is CLI-only:
+ * argv parsing, flag → core-filter translation, and terminal formatting.
+ */
+
+import { describe, it, expect, vi } from "vitest";
+import * as nodePath from "node:path";
+
+import {
+  parseArgv,
+  buildFilter,
+  shortDate,
+  shortPath,
+} from "../../src/commands/mem.js";
+
+// =============================================================================
+// parseArgv
+// =============================================================================
+
+describe("parseArgv", () => {
+  it("defaults cmd to 'list' when argv is empty", () => {
+    const r = parseArgv([]);
+    expect(r.cmd).toBe("list");
+    expect(r.positional).toEqual([]);
+    expect(r.flags).toEqual({});
+  });
+
+  it("collects positional args after the command", () => {
+    const r = parseArgv(["search", "memory", "leak"]);
+    expect(r.cmd).toBe("search");
+    expect(r.positional).toEqual(["memory", "leak"]);
+  });
+
+  it("parses --flag value pairs and standalone --flag as boolean", () => {
+    const r = parseArgv([
+      "list",
+      "--platform",
+      "claude",
+      "--global",
+      "--limit",
+      "10",
+    ]);
+    expect(r.flags.platform).toBe("claude");
+    expect(r.flags.global).toBe(true);
+    expect(r.flags.limit).toBe("10");
+  });
+
+  it("treats trailing --flag (no value) as boolean true", () => {
+    const r = parseArgv(["list", "--json"]);
+    expect(r.flags.json).toBe(true);
+  });
+});
+
+// =============================================================================
+// buildFilter
+// =============================================================================
+
+describe("buildFilter", () => {
+  it("defaults platform to 'all' and limit to 50, scoping to cwd", () => {
+    const f = buildFilter({});
+    expect(f.platform).toBe("all");
+    expect(f.limit).toBe(50);
+    expect(f.cwd).toBe(process.cwd());
+    expect(f.since).toBeUndefined();
+    expect(f.until).toBeUndefined();
+  });
+
+  it("accepts zcode as a platform filter (tiny's first-class platform)", () => {
+    const f = buildFilter({ platform: "zcode", global: true });
+    expect(f.platform).toBe("zcode");
+    expect(f.cwd).toBeUndefined();
+  });
+
+  it("accepts codex as a platform filter", () => {
+    const f = buildFilter({ platform: "codex", global: true });
+    expect(f.platform).toBe("codex");
+    expect(f.cwd).toBeUndefined();
+  });
+
+  it("rejects unknown platforms via process.exit(2)", () => {
+    // die() calls process.exit(2); stub it with a throw so the test can
+    // observe both the exit code and that execution stops.
+    const errSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(((code: number) => {
+        throw new Error(`process.exit(${String(code)})`);
+      }) as never);
+    expect(() => buildFilter({ platform: "nope" })).toThrow(
+      /process\.exit\(2\)/,
+    );
+    expect(exitSpy).toHaveBeenCalledWith(2);
+    exitSpy.mockRestore();
+    errSpy.mockRestore();
+  });
+
+  it("--global drops the cwd scope", () => {
+    const f = buildFilter({ global: true });
+    expect(f.cwd).toBeUndefined();
+  });
+
+  it("parses --since as inclusive lower bound and --until as end-of-day UTC", () => {
+    const f = buildFilter({ since: "2026-04-01", until: "2026-04-30" });
+    expect(f.since?.toISOString()).toBe("2026-04-01T00:00:00.000Z");
+    // until gets `T23:59:59.999Z` appended so the filter is inclusive of the
+    // entire day, not midnight (off-by-one trap the PRD called out).
+    expect(f.until?.toISOString()).toBe("2026-04-30T23:59:59.999Z");
+  });
+
+  it("--cwd overrides process.cwd() and resolves relative paths", () => {
+    const cwd = nodePath.join("some", "relative", "path");
+    const f = buildFilter({ cwd });
+    expect(f.cwd).toBe(nodePath.resolve(cwd));
+  });
+});
+
+// =============================================================================
+// shortDate / shortPath
+// =============================================================================
+
+describe("shortDate", () => {
+  it("returns blank padding when iso is undefined", () => {
+    expect(shortDate(undefined)).toBe("         ");
+  });
+
+  it("trims iso to 'YYYY-MM-DD HH:MM' and replaces T with space", () => {
+    expect(shortDate("2026-04-15T13:30:45.123Z")).toBe("2026-04-15 13:30");
+  });
+
+  it("preserves a too-short iso without crashing", () => {
+    expect(shortDate("2026")).toBe("2026");
+  });
+});
+
+describe("shortPath", () => {
+  it("returns '(no cwd)' for undefined", () => {
+    expect(shortPath(undefined)).toBe("(no cwd)");
+  });
+
+  it("replaces $HOME with ~", async () => {
+    const os = await import("node:os");
+    const home = os.homedir();
+    expect(shortPath(nodePath.join(home, "projects", "foo"))).toBe(
+      nodePath.join("~", "projects", "foo"),
+    );
+  });
+
+  it("leaves paths outside HOME untouched", () => {
+    expect(shortPath("/etc/hosts")).toBe("/etc/hosts");
+  });
+});

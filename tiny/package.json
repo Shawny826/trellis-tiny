@@ -1,0 +1,57 @@
+{
+  "name": "trellis-tiny",
+  "version": "0.1.0",
+  "description": "trellis-tiny — slimmed-down Trellis distribution: codex/zcode/dsh platforms, zero-task fast path, no channel",
+  "type": "module",
+  "main": "./dist/cli/index.js",
+  "types": "./dist/cli/index.d.ts",
+  "bin": {
+    "tt": "./bin/tt.js",
+    "trellis-tiny": "./bin/tt.js"
+  },
+  "scripts": {
+    "build": "pnpm run clean && tsc && pnpm run copy-templates",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "copy-templates": "node scripts/copy-templates.js",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/ test/",
+    "lint:fix": "eslint src/ test/ --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "workflow",
+    "cli",
+    "developer-tools",
+    "agent",
+    "memory",
+    "trellis"
+  ],
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "inquirer": "^9.3.7",
+    "undici": "^6.21.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.17.10",
+    "eslint": "^9.18.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.21.0",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README-tiny.md",
+    "LICENSE"
+  ]
+}
