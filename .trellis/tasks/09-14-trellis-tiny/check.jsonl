@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/09-14-trellis-tiny/prd.md", "reason": "AC1-AC8 验收标准逐条核对"}
+{"file": ".trellis/tasks/09-14-trellis-tiny/design.md", "reason": "设计偏离检查：单包形态、skill 单一根、收敛白名单、workflow 标签校验器是否落地"}
+{"file": "Trellis/.trellis/spec/cli/backend/workflow-state-contract.md", "reason": "验证 R3 改写后标签块仍满足运行时契约（块闭合、五 status 齐全、required 步骤覆盖）"}
+{"file": "Trellis/.trellis/spec/cli/backend/quality-guidelines.md", "reason": "CLI 包质量基线：lint/typecheck/test 出口标准"}
+{"file": "Trellis/.trellis/spec/cli/backend/filesystem-safety.md", "reason": "检查收敛/卸载不触碰用户数据（tasks/workspace/spec 白名单）"}

@@ -1,0 +1,7 @@
+{"file": ".trellis/tasks/09-14-trellis-tiny/research/skill-roots-and-channel-footprint.md", "reason": "全部核心事实：skill 单源多根模型、ZCode 双根实证、channel 移除清单、体量数据、面包屑契约约束"}
+{"file": "Trellis/.trellis/spec/cli/backend/configurator-shared.md", "reason": "占位符解析与 neutral 渲染契约——M3 configurators 移植裁剪必须遵守"}
+{"file": "Trellis/.trellis/spec/cli/backend/platform-integration.md", "reason": "codex/zcode/dsh 三平台 hooks 与子代理行为差异——M1 模板 vendoring 与 M3 的依据"}
+{"file": "Trellis/.trellis/spec/cli/backend/workflow-state-contract.md", "reason": "workflow.md 标签块运行时契约——R3 直通档改写 no_task 块的硬约束"}
+{"file": "Trellis/.trellis/spec/cli/backend/commands-update.md", "reason": "上游 update 语义与 hash 清单行为——M5 重写对齐参照"}
+{"file": "Trellis/.trellis/spec/cli/backend/filesystem-safety.md", "reason": "安全写/删规则——M4 收敛逻辑删上游遗留文件的边界"}
+{"file": "Trellis/.trellis/spec/core/backend/trellis-core-sdk.md", "reason": "mem/task 模块公共 API 面——M2 移植时的接口参照"}
