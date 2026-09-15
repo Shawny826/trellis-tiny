@@ -1,9 +1,9 @@
-# Push-to-main CI: build + test always; publish to npm only when the version
-# in tiny/package.json differs from what the registry already has.
-# Publish needs the NPM_TOKEN secret (Actions → Variables and secrets →
-# Actions → Repository secrets). Until it is set, this job stays green and
-# skips the publish step.
-name: build-and-publish
+# Push-to-main CI: build + test always; publish a GitHub Release with the
+# packed tarball when the version in tiny/package.json is new.
+# No external tokens needed — the workflow's own GITHUB_TOKEN creates the
+# release. Install: npm i -g https://github.com/Shawny826/trellis-tiny/
+# releases/download/vX.Y.Z/trellis-tiny-X.Y.Z.tgz
+name: build-and-release
 
 on:
   push:
@@ -11,11 +11,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  id-token: write # npm provenance
+  contents: write # create release + tag
 
 jobs:
-  build-test-publish:
+  build-test-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +22,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: https://registry.npmjs.org
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -39,18 +37,20 @@ jobs:
           pnpm build
           pnpm test
 
-      - name: Publish when version changed
-        working-directory: tiny
+      - name: Release when version is new
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::notice::NPM_TOKEN secret not set — skipping publish"
+          VERSION="$(node -p "require('./tiny/package.json').version")"
+          TAG="v${VERSION}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release ${TAG} already exists — skipping"
             exit 0
           fi
-          LOCAL="$(node -p "require('./package.json').version")"
-          if REMOTE="$(npm view trellis-tiny version 2>/dev/null)" && [ "$LOCAL" = "$REMOTE" ]; then
-            echo "trellis-tiny@$LOCAL already published — skipping"
-            exit 0
-          fi
-          npm publish --provenance
+          (cd tiny && npm pack --pack-destination "$RUNNER_TEMP")
+          FILENAME="trellis-tiny-${VERSION}.tgz"
+          TARBALL="$RUNNER_TEMP/$FILENAME"
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --title "trellis-tiny ${VERSION}" \
+            --notes "Install: \`npm i -g https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${FILENAME}\`" \
+            "$TARBALL"
