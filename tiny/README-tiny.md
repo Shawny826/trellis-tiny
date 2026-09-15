@@ -5,7 +5,13 @@ Trellis 的精简发行版：只保留日常使用所需的平台与工作流，
 
 ## 安装
 
-从 GitHub Releases 安装（包不发 npm registry）：
+从 npm registry 安装（推荐）：
+
+```bash
+npm i -g trellis-tiny
+```
+
+或从 GitHub Releases 安装 tarball（无需 npm 账号）：
 
 ```bash
 npm i -g https://github.com/Shawny826/trellis-tiny/releases/download/v0.1.0/trellis-tiny-0.1.0.tgz
@@ -58,8 +64,8 @@ tt init --dry-run       # 只打印计划（含上游遗留收敛清单），不
 - skill 单一根：只写 `.agents/skills/`，不再双根分发（每会话少 9 个重复条目）。
 - 零任务直通档：简单任务不再强制建任务目录。
 - 移除 Channel 多 Agent 协作系统及 ablate/restore、远程模板体系、workflow 命令。
-- 模板升级不走迁移体系：`tt update` 基于 hash 清单做三方对比，升级换版本直接重装
-  新版 Release tarball（同安装命令换版本号）。
+- 模板升级不走迁移体系：`tt update` 基于 hash 清单做三方对比，升级换版本直接
+  `npm i -g trellis-tiny@latest`（或同安装命令换 Release 版本号）。
 
 ## 许可
 

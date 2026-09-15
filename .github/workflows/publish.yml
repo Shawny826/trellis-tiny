@@ -1,8 +1,9 @@
-# Push-to-main CI: build + test always; publish a GitHub Release with the
-# packed tarball when the version in tiny/package.json is new.
-# No external tokens needed — the workflow's own GITHUB_TOKEN creates the
-# release. Install: npm i -g https://github.com/Shawny826/trellis-tiny/
-# releases/download/vX.Y.Z/trellis-tiny-X.Y.Z.tgz
+# Push-to-main CI: build + test always. Two independent publish channels,
+# each idempotent on its own check:
+#   1. npm registry — when tiny/package.json version differs from npmjs
+#      (needs the NPM_TOKEN secret; skipped with a notice if absent).
+#   2. GitHub Release tarball — when the vX.Y.Z release does not exist yet
+#      (uses the workflow's own GITHUB_TOKEN; install without any auth).
 name: build-and-release
 
 on:
@@ -12,6 +13,7 @@ on:
 
 permissions:
   contents: write # create release + tag
+  id-token: write # npm provenance
 
 jobs:
   build-test-release:
@@ -22,6 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          registry-url: https://registry.npmjs.org
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -37,7 +40,23 @@ jobs:
           pnpm build
           pnpm test
 
-      - name: Release when version is new
+      - name: Publish to npm when version changed
+        working-directory: tiny
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::notice::NPM_TOKEN secret not set — skipping npm publish"
+            exit 0
+          fi
+          LOCAL="$(node -p "require('./package.json').version")"
+          if REMOTE="$(npm view trellis-tiny version 2>/dev/null)" && [ "$LOCAL" = "$REMOTE" ]; then
+            echo "trellis-tiny@$LOCAL already on npm — skipping"
+            exit 0
+          fi
+          npm publish --provenance
+
+      - name: Release tarball when version is new
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
