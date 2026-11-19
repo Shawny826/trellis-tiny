@@ -7,3 +7,11 @@
 - Checks: no project checks registered
 - Review: self
 - Commit: f774619
+
+## 2026-11-19 17:49
+- Reason: Delete the leftover .zcode/ ZCode setup, whose hooks no longer worked after the migration, and describe the remaining TypeScript-era leftovers accurately in AGENTS.md
+- Changed: .zcode/agents/trellis-check.md, .zcode/agents/trellis-implement.md, .zcode/agents/trellis-research.md, .zcode/commands/trellis/continue.md, .zcode/commands/trellis/finish-work.md, .zcode/config.json, .zcode/hooks/inject-shell-session-context.py, .zcode/hooks/inject-subagent-context.py, .zcode/hooks/inject-workflow-state.py, .zcode/hooks/session-start.py, AGENTS.md
+- Verify: `test ! -e .zcode && test -z "$(git ls-files .zcode)"` — exit 0 — no output
+- Checks: no project checks registered
+- Review: independent
+- Commit: 8396c3c (with uncommitted changes)
