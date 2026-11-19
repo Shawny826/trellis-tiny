@@ -4,10 +4,14 @@ The fixture follows upstream's templates: hook commands of the form
 `<python> <script>`, the TRELLIS:START/END block in AGENTS.md, and a version 2
 manifest in .trellis/.template-hashes.json.
 """
+import contextlib
+import io
 import json
 import unittest
+from unittest import mock
 
 from support import SOURCE_SCRIPT, RepoTestCase
+from ttlib.install import InitOptions, init
 
 CONTENT_FILES = {
     ".trellis/workflow.md": "# Workflow\n",
@@ -205,9 +209,17 @@ class MigrateRefusalTest(MigrationTestCase):
         self.assertIn(message, completed.stderr)
         self.assertEqual(self.git("status", "--porcelain"), "")
 
-    def test_plain_init_asks_for_migrate(self):
-        completed = self.tt("init", "--claude", script=SOURCE_SCRIPT)
-        self.assert_untouched(completed, "init --migrate --dry-run")
+    def test_plain_init_without_a_terminal_changes_nothing(self):
+        completed = self.tt("init", "--claude", stdin="", script=SOURCE_SCRIPT)
+        self.assert_untouched(completed, "needs a yes from a terminal")
+        self.assertIn("init --migrate", completed.stderr)
+        self.assertIn("would migrate: archive 14 upstream file(s)", completed.stdout)
+
+    def test_dry_run_without_migrate_previews_the_migration(self):
+        completed = self.tt("init", "--dry-run", script=SOURCE_SCRIPT)
+        self.assert_ok(completed)
+        self.assertIn("would migrate: archive 14 upstream file(s)", completed.stdout)
+        self.assertEqual(self.git("status", "--porcelain"), "")
 
     def test_dry_run_lists_the_plan_and_changes_nothing(self):
         completed = self.migrate("--dry-run")
@@ -238,6 +250,38 @@ class MigrateRefusalTest(MigrationTestCase):
         completed = self.migrate()
         self.assert_untouched(completed, "bash .claude/hooks/session-start.py")
         self.assertIn("unclear whether", completed.stderr)
+
+
+class MigrateConfirmTest(MigrationTestCase):
+    """Plain init in a terminal asks before migrating. Run in-process, because a subprocess
+    here has no terminal to answer from."""
+
+    def init_answering(self, answer):
+        terminal = mock.Mock()
+        terminal.isatty.return_value = True
+        reply = {"side_effect": answer} if answer is EOFError else {"return_value": answer}
+        with mock.patch("sys.stdin", terminal), mock.patch("builtins.input", **reply) as asked, \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            code = init(self.root, InitOptions(set()))
+        asked.assert_called_once()
+        return code, out.getvalue()
+
+    def test_yes_migrates_and_installs(self):
+        code, out = self.init_answering("y")
+        self.assertEqual(code, 0, out)
+        self.assertIn("would migrate: archive 14 upstream file(s)", out)
+        self.assertFalse((self.root / ".trellis/workflow.md").exists())
+        self.assertTrue((self.archive() / ".trellis/workflow.md").is_file())
+        self.assertTrue((self.root / ".trellis/tiny/config.json").is_file())
+
+    def test_anything_but_yes_changes_nothing(self):
+        for answer in ("", "n", "maybe", EOFError):
+            with self.subTest(answer=answer):
+                code, out = self.init_answering(answer)
+                self.assertEqual(code, 1)
+                self.assertIn("Nothing was changed.", out)
+                self.assertEqual(answer is EOFError, "init --migrate" in out)
+                self.assertEqual(self.git("status", "--porcelain"), "")
 
 
 if __name__ == "__main__":

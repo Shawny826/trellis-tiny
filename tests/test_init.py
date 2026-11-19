@@ -73,11 +73,11 @@ class InitTest(RepoTestCase):
         self.assertIn("not valid JSON", completed.stderr)
         self.assertFalse((self.root / "AGENTS.md").exists())
 
-    def test_upstream_trellis_needs_migrate(self):
+    def test_upstream_trellis_without_a_manifest_stops_init(self):
         self.write(".trellis/workflow.md", "upstream\n")
-        completed = self.tt("init", "--claude", script=SOURCE_SCRIPT)
+        completed = self.tt("init", "--claude", stdin="", script=SOURCE_SCRIPT)
         self.assertEqual(completed.returncode, 1)
-        self.assertIn("init --migrate --dry-run", completed.stderr)
+        self.assertIn(".trellis/.template-hashes.json is missing", completed.stderr)
         self.assertFalse((self.root / "AGENTS.md").exists())
 
     def test_migrate_without_upstream_is_an_error(self):

@@ -40,7 +40,7 @@ tt init
 - A project without tiny-trellis gets a fresh install: the `.trellis/` folders, the managed block in `AGENTS.md`, hooks, the reviewer subagent, and the skills. With no flags it sets up both Claude Code and Codex; `--claude` or `--codex` sets up only one.
 - Once it finishes, start a new agent session. In Codex, you also need to review and trust the hooks with `/hooks` before they take effect.
 - Use `--dry-run` to list the changes without writing anything.
-- If the project has an upstream Trellis installation, init stops and asks for `--migrate`. See "Migrating from Trellis" below.
+- If the project has an upstream Trellis installation, init shows the migration plan and asks before going ahead. See "Migrating from Trellis" below.
 
 ## Upgrading a project
 
@@ -74,15 +74,16 @@ What init writes:
 
 ## Migrating from Trellis
 
-Commit or stash your work first, then preview and run the migration:
+Commit or stash your work first, then run init as usual:
 
 ```bash
-tt init --migrate --dry-run
+tt init
 ```
 
-```bash
-tt init --migrate
-```
+When init finds an upstream installation, it lists the migration plan and asks `Migrate from Trellis as listed above, then install tiny-trellis? [y/N]`. Only `y` or `yes` goes ahead; any other answer changes nothing.
+
+- `tt init --dry-run` previews the same plan without asking.
+- Without a terminal to answer from, such as in a script, init stops instead of asking. `tt init --migrate` migrates without the question.
 
 Nothing is deleted. The migration works from upstream's own install manifest, `.trellis/.template-hashes.json`:
 

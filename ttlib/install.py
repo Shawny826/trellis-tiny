@@ -3,12 +3,14 @@
 A project without .trellis/tiny/config.json gets a fresh install; a project with
 one is upgraded to this version. Every file's new content is computed before
 anything is written, so a problem found in any file stops init with no changes.
-An upstream Trellis installation is migrated first when --migrate is given.
+An upstream Trellis installation is migrated first, after the user confirms in a
+terminal, or without asking when --migrate is given.
 """
 from __future__ import annotations
 
 import datetime
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -63,9 +65,13 @@ class InitPlan:
 
 def init(start: Path, options: InitOptions) -> int:
     plan = _plan(find_project(start), options)
-    _report(plan, options.dry_run)
+    ask = plan.migration is not None and not options.migrate and not options.dry_run
+    _report(plan, options.dry_run or ask)
     if options.dry_run:
         return 0
+    if ask and not _confirm_migration():
+        print("Nothing was changed.")
+        return 1
     project = plan.project
     clean_before = _matches_baseline(project)
     now = datetime.datetime.now()
@@ -148,14 +154,26 @@ def _platforms(config: dict | None, requested: set) -> set:
 
 def _migration_plan(project: Project, migrate: bool) -> MigrationPlan | None:
     upstream = is_installed(project.root)
-    if upstream and not migrate:
-        raise TinyError("found an upstream Trellis installation. Preview the migration with "
-                        "`init --migrate --dry-run`, then run `init --migrate`.")
     if migrate and not upstream:
         raise TinyError("--migrate was given, but no upstream Trellis installation was found")
     if not upstream:
         return None
     return plan_migration(project, datetime.datetime.now(), _asset("spec-index.md"))
+
+
+def _confirm_migration() -> bool:
+    """Ask before migrating. Without a terminal there is no one to ask, so init stops.
+    On Windows the NUL device counts as a terminal; reading it gives EOF, a no."""
+    if not sys.stdin.isatty():
+        raise TinyError("found an upstream Trellis installation, and migrating it needs a yes "
+                        "from a terminal. Run `init --migrate` to migrate without asking, or "
+                        "`init --dry-run` to preview it.")
+    try:
+        answer = input("Migrate from Trellis as listed above, then install tiny-trellis? [y/N] ")
+    except EOFError:
+        print("\nNo answer was given; run `init --migrate` to migrate without asking.")
+        return False
+    return answer.strip().lower() in ("y", "yes")
 
 
 def _exclude_write(project: Project, platforms: set) -> Write:

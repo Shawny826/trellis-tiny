@@ -30,8 +30,8 @@ def build_parser() -> argparse.ArgumentParser:
                              help="set up Claude Code (with neither flag, a new install sets up both)")
     init_parser.add_argument("--codex", action="store_true", help="set up Codex")
     init_parser.add_argument("--dry-run", action="store_true", help="list changes only")
-    init_parser.add_argument("--migrate", action="store_true",
-                             help="replace an upstream Trellis installation (nothing is deleted)")
+    # Migration is asked for interactively; --migrate answers yes without a terminal.
+    init_parser.add_argument("--migrate", action="store_true", help=argparse.SUPPRESS)
     changed = init_parser.add_mutually_exclusive_group()
     changed.add_argument("--force", action="store_true",
                          help="back up tiny-trellis files you changed, then overwrite them")
