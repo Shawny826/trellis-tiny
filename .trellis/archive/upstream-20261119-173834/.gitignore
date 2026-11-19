@@ -1,0 +1,2 @@
+# Keep every archived upstream file in Git, even if a parent rule ignores it.
+!*
