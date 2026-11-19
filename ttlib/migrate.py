@@ -21,6 +21,7 @@ from .upstream import (AGENTS_FILE, SCRUBBED_JSON, classify, leftovers, manifest
 ARCHIVE_ROOT = Path(".trellis") / "archive"
 ARCHIVE_GITIGNORE = "# Keep every archived upstream file in Git, even if a parent rule ignores it.\n!*\n"
 TASKS_INDEX = "upstream-tasks.md"
+FOREIGN_SHOWN = 20
 
 
 @dataclass(frozen=True)
@@ -55,10 +56,24 @@ def plan_migration(project: Project, now: datetime.datetime, index_template: str
     knowledge, unreadable = _knowledge_edits(project, now, index_template)
     edits.update(knowledge)
     notes = tuple(_notes(inventory, unreadable, unlisted))
-    report = _report(project, moves, removed, notes, now) + _unlisted_section(unlisted)
+    report = (_report(project, moves, removed, notes, now) + _foreign_section(inventory.foreign)
+              + _unlisted_section(unlisted))
     edits[archive / "MIGRATION.md"] = report
     edits[archive / ".gitignore"] = ARCHIVE_GITIGNORE
     return MigrationPlan(archive, moves, edits, tuple(removed), notes)
+
+
+def _foreign_section(foreign: list) -> str:
+    if not foreign:
+        return ""
+    lines = ["## Not handled, left in place", "",
+             "These files are in the upstream manifest but this migration does not handle "
+             "them; most belong to platforms other than Claude Code and Codex. Their hooks and "
+             "settings were not changed. They may run upstream scripts that were moved into this "
+             "folder, such as `.trellis/scripts/`, so Trellis on those platforms may stop "
+             "working. Move, delete, or fix them by hand.", "", *(f"- {path}" for path in foreign),
+             ""]
+    return "\n".join(lines)
 
 
 def _unlisted_section(unlisted: list) -> str:
@@ -190,6 +205,14 @@ def _task_line(project: Project, task_json: Path) -> tuple:
 
 def _notes(inventory, unreadable: list, unlisted: list) -> list:
     notes = []
+    if inventory.foreign:
+        shown = ", ".join(inventory.foreign[:FOREIGN_SHOWN])
+        more = (f", and {len(inventory.foreign) - FOREIGN_SHOWN} more"
+                if len(inventory.foreign) > FOREIGN_SHOWN else "")
+        notes.append(f"{len(inventory.foreign)} file(s) in the upstream manifest are not handled "
+                     "by this migration (tiny-trellis supports Claude Code and Codex only) and "
+                     "were left in place; they may depend on the archived upstream scripts, so "
+                     f"review them (listed in MIGRATION.md): {shown}{more}")
     if unlisted:
         notes.append(f"{len(unlisted)} file(s) named trellis* are not in the upstream manifest "
                      "and were left in place; they are listed in MIGRATION.md for you to review")

@@ -95,10 +95,11 @@ The migration stops without changing anything when:
 
 - the working tree has uncommitted changes (`--dry-run` does not need a clean tree);
 - the manifest is missing or not in its version 2 format (run `trellis update` with the upstream CLI first);
-- the manifest includes files for platforms other than Claude Code and Codex;
 - a hook runs an upstream script without a Python interpreter, so it is unclear whose it is.
 
 Files named `trellis*` that are not in the manifest (often left by older upstream versions) are listed in `MIGRATION.md` and left in place for you to review.
+
+Files in the manifest that the migration does not handle, mostly those of platforms other than Claude Code and Codex (such as `.cursor/` or `.zcode/`), are also left in place, together with their hooks and settings, and listed in the output and in `MIGRATION.md`. They may run upstream scripts the migration archived, such as `.trellis/scripts/`, so Trellis on those platforms may stop working until you move, delete, or fix them.
 
 ## Commands
 

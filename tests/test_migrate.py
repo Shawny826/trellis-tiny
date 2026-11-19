@@ -170,6 +170,28 @@ class MigrateTest(MigrationTestCase):
         self.assertIn("- .claude/skills/trellis-old/SKILL.md", report)
         self.assertNotIn("my-skill", report)
 
+    def test_other_platforms_are_left_in_place_and_reported(self):
+        cursor_hook, cursor_config = ".cursor/hooks/session-start.py", ".cursor/hooks.json"
+        self.write(cursor_hook, "print('cursor')\n")
+        self.write(cursor_config, '{"hooks": {}}\n')
+        self.build_upstream(extra_manifest=[cursor_hook, cursor_config])
+        self.commit("cursor too")
+        dry_run = self.migrate("--dry-run")
+        self.assert_ok(dry_run)
+        self.assertIn("2 file(s) in the upstream manifest are not handled", dry_run.stdout)
+        self.assertIn(cursor_hook, dry_run.stdout)
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        self.assert_ok(self.migrate())
+        self.assertEqual(self.read(cursor_hook), "print('cursor')\n")
+        self.assertEqual(self.read(cursor_config), '{"hooks": {}}\n')
+        self.assertFalse((self.root / ".trellis/workflow.md").exists())
+        report = (self.archive() / "MIGRATION.md").read_text(encoding="utf-8")
+        self.assertIn("## Not handled, left in place", report)
+        self.assertIn(f"- {cursor_hook}", report)
+        self.assertIn(f"- {cursor_config}", report)
+        self.assertNotIn(f"- {cursor_hook}", report.split("## Moved into this folder")[1]
+                         .split("## Removed from shared files")[0])
+
     def test_block_at_the_top_leaves_no_blank_first_line(self):
         self.write("AGENTS.md", "<!-- TRELLIS:START -->\nupstream\n<!-- TRELLIS:END -->\n\n# Ours\n")
         self.commit("block first")
@@ -201,12 +223,6 @@ class MigrateRefusalTest(MigrationTestCase):
         self.assertEqual(completed.returncode, 1)
         self.assertIn("uncommitted changes", completed.stderr)
         self.assertTrue((self.root / ".trellis/workflow.md").exists())
-
-    def test_other_platforms_stop_the_migration(self):
-        self.write(".cursor/hooks/session-start.py", "print('cursor')\n")
-        self.build_upstream(extra_manifest=[".cursor/hooks/session-start.py"])
-        self.commit("cursor too")
-        self.assert_untouched(self.migrate(), ".cursor/hooks/session-start.py")
 
     def test_missing_manifest_stops_the_migration(self):
         (self.root / ".trellis/.template-hashes.json").unlink()

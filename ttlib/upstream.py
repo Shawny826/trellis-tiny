@@ -41,6 +41,7 @@ class Inventory:
     scrubbed: list
     left: list
     missing: list
+    foreign: list
 
 
 def is_installed(root: Path) -> bool:
@@ -69,7 +70,9 @@ def manifest_paths(root: Path) -> list:
 
 
 def classify(root: Path, paths: list) -> Inventory:
-    moves, scrubbed, left, missing, unsupported = [], [], [], [], []
+    """Sort the manifest. Files this migration does not handle, such as other platforms'
+    (foreign), are left in place and reported."""
+    moves, scrubbed, left, missing, foreign = [], [], [], [], []
     for item in paths:
         if not (root / item).exists():
             missing.append(item)
@@ -80,14 +83,9 @@ def classify(root: Path, paths: list) -> Inventory:
         elif item.startswith(CONTENT_PREFIXES) and not item.startswith(KEPT_PREFIXES):
             moves.append(item)
         else:
-            unsupported.append(item)
-    if unsupported:
-        shown = "\n".join(f"  {item}" for item in unsupported[:20])
-        more = f"\n  ... and {len(unsupported) - 20} more" if len(unsupported) > 20 else ""
-        raise TinyError("the upstream installation includes files this migration does not "
-                        f"handle (tiny-trellis supports Claude Code and Codex only):\n{shown}{more}")
+            foreign.append(item)
     extras = [item for item in EXTRA_METADATA if (root / item).is_file() and item not in moves]
-    return Inventory(moves + extras, scrubbed, left, missing)
+    return Inventory(moves + extras, scrubbed, left, missing, foreign)
 
 
 def leftovers(root: Path, manifest: list) -> list:
