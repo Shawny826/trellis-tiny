@@ -1,0 +1,31 @@
+# Push and pull-request CI: run the tiny-trellis test suite on the oldest supported
+# Python and a current one, on Linux and Windows. Nothing is published; tiny-trellis
+# is installed from a git checkout with `./tt install`.
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.9", "3.x"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Run the tests
+        run: python -m unittest discover -s tests -v

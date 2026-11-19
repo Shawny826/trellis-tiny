@@ -1,13 +1,11 @@
 # Upstream reference snapshot (read-only, not part of this repo)
 /Trellis/
 
-# Node
-node_modules/
-tiny/dist/
-
 # Python
 **/__pycache__/
 **/*.pyc
+build/
+*.egg-info/
 
 # Trellis runtime state (session tickets, transient pointers)
 .trellis/.runtime/

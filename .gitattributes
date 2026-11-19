@@ -7,3 +7,8 @@
 # picking either side (task state lives in task.json, not index.md). See
 # .trellis/spec/cli/backend/directory-structure.md for details.
 .trellis/workspace/*/journal-*.md merge=union
+
+# tiny-trellis launchers: `tt` must keep LF so Git Bash, macOS, and Linux can run it,
+# even with core.autocrlf=true; `tt.cmd` keeps the CRLF that cmd.exe expects.
+/tt text eol=lf
+/tt.cmd text eol=crlf

@@ -1,0 +1,14 @@
+#!/bin/sh
+# tiny-trellis launcher for a fresh checkout: runs tt.py next to this file with the
+# first Python 3.9+ it finds, in the same order the hooks use. Run `./tt install`
+# once to put `tt` on PATH.
+here=$(cd "$(dirname "$0")" && pwd)
+probe='import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'
+for candidate in python3 python "py -3"; do
+  if $candidate -c "$probe" >/dev/null 2>&1; then
+    exec $candidate "$here/tt.py" "$@"
+  fi
+done
+echo "tiny-trellis needs Python 3.9 or later, and none was found (tried python3, python, py -3)." >&2
+echo "Install Python 3 from https://www.python.org/downloads/ or with your package manager, then run this again." >&2
+exit 1
