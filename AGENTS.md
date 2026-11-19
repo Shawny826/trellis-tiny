@@ -23,4 +23,4 @@ This repository is trellis-tiny: a lightweight project workflow for Claude Code 
 
 ## Left over from the TypeScript era
 
-`.trellis/`, `.agents/`, `.codex/`, and `.zcode/` hold this repository's own workflow from before the rewrite. Their workflow, specs, and tasks describe the removed `tiny/` package and do not apply to the Python code. In Codex, the `trellis-*` skills in `.agents/skills/` and any Trellis workflow state that a hook adds to your context come from that old workflow; don't follow them.
+`.trellis/` and `.zcode/` hold this repository's own workflow from before the rewrite. Their workflow, specs, and tasks describe the removed `tiny/` package and do not apply to the Python code. The old Codex hooks, subagents, and `trellis-*` skills have been removed; `.codex/config.toml` remains and only makes Codex read this file.
