@@ -49,6 +49,11 @@ class WithImportTest(unittest.TestCase):
         text = "# Notes\n@AGENTS.md\n"
         self.assertEqual(with_import(text), text)
 
+    def test_nested_import_line(self):
+        self.assertEqual(with_import(None, "@../AGENTS.md"), "@../AGENTS.md\n")
+        text = "@../AGENTS.md\n# Notes\n"
+        self.assertEqual(with_import(text, "@../AGENTS.md"), text)
+
 
 class MergeHooksTest(unittest.TestCase):
     def setUp(self):

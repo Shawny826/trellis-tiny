@@ -11,7 +11,8 @@ class InitTest(RepoTestCase):
         agents = self.read("AGENTS.md")
         self.assertIn("<!-- tiny-trellis:begin", agents)
         self.assertIn("<!-- tiny-trellis:end -->", agents)
-        self.assertEqual(self.read("CLAUDE.md"), "@AGENTS.md\n")
+        self.assertEqual(self.read(".claude/CLAUDE.md"), "@../AGENTS.md\n")
+        self.assertFalse((self.root / "CLAUDE.md").exists())
         self.assertTrue((self.root / ".trellis/tiny/tt.py").is_file())
         self.assertTrue((self.root / ".trellis/spec/index.md").is_file())
         self.assertEqual(self.read(".claude/agents/tiny_trellis_reviewer.md"),
@@ -51,6 +52,27 @@ class InitTest(RepoTestCase):
         self.write("AGENTS.md", "# Team rules\nuse tabs\n")
         self.install()
         self.assertTrue(self.read("AGENTS.md").startswith("# Team rules\nuse tabs\n\n"))
+
+    def test_existing_root_claude_md_gets_the_import(self):
+        self.write("CLAUDE.md", "# Notes\n")
+        self.install()
+        self.assertEqual(self.read("CLAUDE.md"), "@AGENTS.md\n\n# Notes\n")
+        self.assertFalse((self.root / ".claude/CLAUDE.md").exists())
+
+    def test_existing_nested_claude_md_gets_the_import(self):
+        self.write(".claude/CLAUDE.md", "# Notes\n")
+        self.install()
+        self.assertEqual(self.read(".claude/CLAUDE.md"), "@../AGENTS.md\n\n# Notes\n")
+        self.assertFalse((self.root / "CLAUDE.md").exists())
+
+    def test_earlier_root_import_stays_on_upgrade(self):
+        self.install()
+        (self.root / ".claude/CLAUDE.md").unlink()
+        self.write("CLAUDE.md", "@AGENTS.md\n")
+        self.commit("an install from before .claude/CLAUDE.md")
+        self.install()
+        self.assertEqual(self.read("CLAUDE.md"), "@AGENTS.md\n")
+        self.assertFalse((self.root / ".claude/CLAUDE.md").exists())
 
     def test_machine_specific_files_are_excluded_from_git(self):
         self.install()

@@ -20,7 +20,7 @@ from .environment import detect_interpreter, detect_shell
 from .errors import TinyError
 from .files import read_exact, read_optional, write_exact
 from .hookconfig import claude_groups, codex_groups, merge_hooks
-from .managed import apply_block, with_import
+from .managed import IMPORT_LINE, NESTED_IMPORT_LINE, apply_block, with_import
 from .migrate import MigrationPlan, apply_migration, describe, plan_migration, require_clean_tree
 from .ownership import (OwnershipPlan, UpdateOptions, apply_owned, compare_versions, load_config,
                         load_manifest, plan_owned, write_records)
@@ -121,10 +121,10 @@ def plan_writes(project: Project, platforms: set, local: dict, read=read_optiona
     merged.append(Write(agents, apply_block(read(agents), _asset("agents-block.md"))))
     with_stop = bool(discover(project))
     if "claude" in platforms:
-        claude_md = project.root / "CLAUDE.md"
+        claude_md, import_line = _claude_md(project, read)
         settings = project.root / ".claude" / "settings.local.json"
         groups = claude_groups(local["interpreter"], with_stop)
-        merged.append(Write(claude_md, with_import(read(claude_md))))
+        merged.append(Write(claude_md, with_import(read(claude_md), import_line)))
         merged.append(Write(settings, merge_hooks(read(settings), groups,
                                                   ".claude/settings.local.json")))
         owned.append(Write(project.root / ".claude/agents/tiny_trellis_reviewer.md",
@@ -140,6 +140,16 @@ def plan_writes(project: Project, platforms: set, local: dict, read=read_optiona
     merged.append(Write(project.runtime / "local.json", json.dumps(local, indent=2) + "\n"))
     merged.append(_exclude_write(project, platforms))
     return owned, merged
+
+
+def _claude_md(project: Project, read) -> tuple:
+    """Where the AGENTS.md import goes, and the import line as seen from there. A project
+    CLAUDE.md at the root is used as it is; otherwise .claude/CLAUDE.md, which Claude Code
+    also reads as project instructions, so init adds nothing to the project root for it."""
+    root = project.root / "CLAUDE.md"
+    if read(root) is not None:
+        return root, IMPORT_LINE
+    return project.root / ".claude" / "CLAUDE.md", NESTED_IMPORT_LINE
 
 
 def _platforms(config: dict | None, requested: set) -> set:

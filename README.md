@@ -67,7 +67,7 @@ What init writes:
 | `.trellis/tiny/.runtime/`, `.trellis/tiny/.backup-*/` | This machine's interpreter, shell, and baseline snapshot; backups from upgrades | No |
 | `.trellis/spec/index.md` | Knowledge index template (only when the file doesn't exist) | Yes |
 | `AGENTS.md` | The managed block (only the content between the markers is replaced) | Yes |
-| `CLAUDE.md` | The `@AGENTS.md` import line | Yes |
+| `.claude/CLAUDE.md` | The `@../AGENTS.md` import line. A project with a `CLAUDE.md` at its root gets `@AGENTS.md` there instead, so init adds nothing else to the root | Yes |
 | `.claude/agents/`, `.codex/agents/` | Reviewer subagent definitions | Yes |
 | `.claude/skills/tt-*/`, `.agents/skills/tt-*/` | The six skills, for Claude Code and Codex respectively | Yes |
 | `.claude/settings.local.json`, `.codex/hooks.json` | Hooks (contain machine-specific paths) | No, excluded via `.git/info/exclude` |

@@ -110,11 +110,14 @@ tiny-trellis 只负责项目内的三件事：项目的管理方案、项目知�
 | 项目没有 `AGENTS.md` | 新建文件，只含受管块 |
 | 项目已有 `AGENTS.md` | 在文件末尾追加受管块，原有内容不动 |
 | 已有受管块 | 只替换开始与结束标记之间的内容 |
-| 项目已有 `CLAUDE.md` 但没有导入 `AGENTS.md` | 在文件开头加一行 `@AGENTS.md` |
-| 项目没有 `CLAUDE.md` | 新建一个只含 `@AGENTS.md` 的 `CLAUDE.md` |
+| 项目根目录已有 `CLAUDE.md` 但没有导入 `AGENTS.md` | 在文件开头加一行 `@AGENTS.md` |
+| 根目录没有 `CLAUDE.md`，`.claude/CLAUDE.md` 已有但没有导入 | 在它开头加一行 `@../AGENTS.md` |
+| 两处都没有 `CLAUDE.md` | 新建只含 `@../AGENTS.md` 的 `.claude/CLAUDE.md`，不在项目根目录新建文件（2026-11-19） |
 | 任何写入 | 先能用 `--dry-run` 预览，写入不删除任何已有内容 |
 
 没有 `CLAUDE.md` 时 Claude Code 本可以直接读取 `AGENTS.md`，但文档列出了它读不到的情况（如升级后的第一个会话、相关内置插件被关闭）。为了不漏掉管理方案，统一用导入的方式。
+
+**导入行优先放在 `.claude/CLAUDE.md`（2026-11-19）。** tt 自己的文件都在 `.trellis/` 下，根目录只剩平台必须在固定位置找到的文件。`AGENTS.md` 必须在根目录：Codex 只沿 Git 根到当前目录的每一级查找 `AGENTS.override.md`、`AGENTS.md` 和 fallback 文件名。`CLAUDE.md` 不必：Claude Code 文档把 `./CLAUDE.md` 与 `./.claude/CLAUDE.md` 并列为项目指令的位置，`@` 导入的相对路径按所在文件解析。根目录已有 `CLAUDE.md` 时仍用它，旧安装升级时也不挪动，以免同一项目出现两份入口。待核实：压缩后的重新注入，文档只写了 "Project-root CLAUDE.md"，`.claude/CLAUDE.md` 是否同样重新注入没有逐字说明；本机 `claude` CLI 未登录，启动时能否经 `@../AGENTS.md` 读到受管块也还没在真实会话里实测。
 
 ## 5. 具体例子
 
@@ -213,7 +216,7 @@ tiny-trellis 只负责项目内的三件事：项目的管理方案、项目知�
 | 术语 | 位置（草案） | 说明 |
 |---|---|---|
 | 管理方案 | 项目 `AGENTS.md` 中的受管块 | 固定文字，每个会话由平台加载 |
-| Claude Code 入口 | 项目 `CLAUDE.md` 中的 `@AGENTS.md` | 让 Claude Code 加载同一份受管块 |
+| Claude Code 入口 | `.claude/CLAUDE.md` 中的 `@../AGENTS.md`；根目录已有 `CLAUDE.md` 时改用它，写 `@AGENTS.md` | 让 Claude Code 加载同一份受管块 |
 | 长文知识 | `.trellis/spec/` | 沿用 Trellis 已有的规范文件，按需读取 |
 | 调研笔记 | `.trellis/spec/research/` | 规则背后的证据和被放弃的方案，由规则链接过去；不列入知识索引 |
 | 知识索引 | `.trellis/spec/index.md` | 每个规范或调研文件一行说明；模型先读索引，再只读适用的文件 |
@@ -404,7 +407,7 @@ tiny-trellis 只负责项目内的三件事：项目的管理方案、项目知�
 由最后一条推出、尚待确认的两点：
 
 - 每轮检查只运行项目登记的检查脚本，项目没有登记时不安装结束 hook。原先设想的硬规则清单、20 条上限和规则编号全部取消。
-- 受管块以项目 `AGENTS.md` 为唯一载体，Claude Code 通过 `CLAUDE.md` 中的导入行读取。
+- 受管块以项目 `AGENTS.md` 为唯一载体，Claude Code 通过 `CLAUDE.md`（默认 `.claude/CLAUDE.md`）中的导入行读取。
 
 起草受管块正文时做出的三点调整，已于 2026-11-18 确认：
 

@@ -6,6 +6,7 @@ from .errors import TinyError
 BEGIN_PREFIX = "<!-- tiny-trellis:begin"
 END_LINE = "<!-- tiny-trellis:end -->"
 IMPORT_LINE = "@AGENTS.md"
+NESTED_IMPORT_LINE = "@../AGENTS.md"
 
 
 def apply_block(existing: str | None, block: str) -> str:
@@ -30,14 +31,15 @@ def apply_block(existing: str | None, block: str) -> str:
     )
 
 
-def with_import(existing: str | None) -> str:
-    """CLAUDE.md content that imports AGENTS.md, so Claude Code reads the managed block."""
+def with_import(existing: str | None, line: str = IMPORT_LINE) -> str:
+    """CLAUDE.md content that imports AGENTS.md, so Claude Code reads the managed block.
+    `line` is the import as seen from the CLAUDE.md being edited."""
     if existing is None or not existing.strip():
-        return IMPORT_LINE + "\n"
-    if any(line.strip() == IMPORT_LINE for line in existing.splitlines()):
+        return line + "\n"
+    if any(current.strip() == line for current in existing.splitlines()):
         return existing
     eol = line_ending(existing)
-    return IMPORT_LINE + eol + eol + existing
+    return line + eol + eol + existing
 
 
 def line_ending(text: str) -> str:
